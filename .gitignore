@@ -6,3 +6,4 @@ terraform-snippets.iml
 /key
 *.tfstate
 *.tfstate.backup
+*.tfstate.lock.info
