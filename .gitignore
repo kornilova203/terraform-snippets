@@ -1,2 +1,8 @@
 /.idea/
 terraform-snippets.iml
+.terraform/
+.terraform.lock.hcl
+/key.pub
+/key
+*.tfstate
+*.tfstate.backup
