@@ -11,7 +11,7 @@ resource "aws_vpc" "main" {
 }
 
 module "public_subnet" {
-  source     = "./subnet"
+  source     = "./../subnet"
   name       = "${var.prefix}-public-subnet"
   vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.0.0/25"
@@ -32,7 +32,7 @@ resource "aws_route" "route_igw" {
 }
 
 module "private_subnet" {
-  source     = "./subnet"
+  source     = "./../subnet"
   name       = "${var.prefix}-private-subnet"
   vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.0.128/25"
@@ -43,27 +43,10 @@ resource "aws_key_pair" "auth" {
   public_key = file("../../key.pub")
 }
 
-resource "aws_security_group" "allow_ssh" {
-  name        = "${var.prefix}-allow-ssh-sg"
-  description = "Allow SSH inbound traffic"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description      = "SSH"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
+module "aws_security_group" {
+  source = "./../ssh_security_group"
+  prefix = var.prefix
+  vpc_id = aws_vpc.main.id
 }
 
 resource "aws_instance" "public_instance" {
@@ -73,7 +56,7 @@ resource "aws_instance" "public_instance" {
   subnet_id                   = module.public_subnet.subnet_id
   key_name                    = aws_key_pair.auth.key_name
   associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids      = [module.aws_security_group.sg_id]
 
   tags = {
     Name = "${var.prefix}-public-instance"
@@ -108,7 +91,7 @@ resource "aws_instance" "private_instance" {
 
   subnet_id                   = module.private_subnet.subnet_id
   key_name                    = aws_key_pair.auth.key_name
-  vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids      = [module.aws_security_group.sg_id]
 
   tags = {
     Name = "${var.prefix}-private-instance"
