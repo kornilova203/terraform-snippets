@@ -89,9 +89,9 @@ resource "aws_instance" "private_instance" {
   ami           = "ami-089950bc622d39ed8" # Amazon Linux 2 Kernel 5.10 AMI 2.0.20220719.0 x86_64 HVM gp2
   instance_type = "t2.micro"
 
-  subnet_id                   = module.private_subnet.subnet_id
-  key_name                    = aws_key_pair.auth.key_name
-  vpc_security_group_ids      = [module.aws_security_group.sg_id]
+  subnet_id              = module.private_subnet.subnet_id
+  key_name               = aws_key_pair.auth.key_name
+  vpc_security_group_ids = [module.aws_security_group.sg_id]
 
   tags = {
     Name = "${var.prefix}-private-instance"
