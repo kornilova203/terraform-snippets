@@ -1,9 +1,13 @@
+module "variables" {
+  source = "./../variables"
+}
+
 provider "aws" {
-  region = var.region
+  region = module.variables.region
 }
 
 resource "aws_key_pair" "auth" {
-  key_name   = "${var.prefix}-key"
+  key_name   = "${module.variables.prefix}-key"
   public_key = file("../../key.pub")
 }
 
@@ -13,13 +17,13 @@ resource "aws_vpc" "main1" {
   cidr_block = "10.0.0.0/24"
 
   tags = {
-    Name = "${var.prefix}-vpc1"
+    Name = "${module.variables.prefix}-vpc1"
   }
 }
 
 module "subnet1" {
   source     = "./../subnet"
-  name       = "${var.prefix}-subnet1"
+  name       = "${module.variables.prefix}-subnet1"
   vpc_id     = aws_vpc.main1.id
   cidr_block = "10.0.0.0/25"
 }
@@ -28,7 +32,7 @@ resource "aws_internet_gateway" "gw1" {
   vpc_id = aws_vpc.main1.id
 
   tags = {
-    Name = "${var.prefix}-ig1"
+    Name = "${module.variables.prefix}-ig1"
   }
 }
 
@@ -40,13 +44,13 @@ resource "aws_route" "route_igw1" {
 
 module "aws_security_group1" {
   source = "./../ssh_security_group"
-  prefix = var.prefix
+  prefix = module.variables.prefix
   vpc_id = aws_vpc.main1.id
 }
 
 resource "aws_instance" "public_instance1" {
-  ami           = "ami-089950bc622d39ed8" # Amazon Linux 2 Kernel 5.10 AMI 2.0.20220719.0 x86_64 HVM gp2
-  instance_type = "t2.micro"
+  ami           = module.variables.ami
+  instance_type = module.variables.instance_type
 
   subnet_id                   = module.subnet1.subnet_id
   key_name                    = aws_key_pair.auth.key_name
@@ -54,7 +58,7 @@ resource "aws_instance" "public_instance1" {
   vpc_security_group_ids      = [module.aws_security_group1.sg_id]
 
   tags = {
-    Name = "${var.prefix}-public-instance1"
+    Name = "${module.variables.prefix}-public-instance1"
   }
 }
 
@@ -64,13 +68,13 @@ resource "aws_vpc" "main2" {
   cidr_block = "10.1.0.0/24"
 
   tags = {
-    Name = "${var.prefix}-vpc2"
+    Name = "${module.variables.prefix}-vpc2"
   }
 }
 
 module "subnet2" {
   source     = "./../subnet"
-  name       = "${var.prefix}-subnet2"
+  name       = "${module.variables.prefix}-subnet2"
   vpc_id     = aws_vpc.main2.id
   cidr_block = "10.1.0.0/25"
 }
@@ -79,7 +83,7 @@ resource "aws_internet_gateway" "gw2" {
   vpc_id = aws_vpc.main2.id
 
   tags = {
-    Name = "${var.prefix}-ig2"
+    Name = "${module.variables.prefix}-ig2"
   }
 }
 
@@ -91,20 +95,20 @@ resource "aws_route" "route_igw2" {
 
 module "aws_security_group2" {
   source = "./../ssh_security_group"
-  prefix = var.prefix
+  prefix = module.variables.prefix
   vpc_id = aws_vpc.main2.id
 }
 
 resource "aws_instance" "private_instance2" {
-  ami           = "ami-089950bc622d39ed8" # Amazon Linux 2 Kernel 5.10 AMI 2.0.20220719.0 x86_64 HVM gp2
-  instance_type = "t2.micro"
+  ami           = module.variables.ami
+  instance_type = module.variables.instance_type
 
   subnet_id              = module.subnet2.subnet_id
   key_name               = aws_key_pair.auth.key_name
   vpc_security_group_ids = [module.aws_security_group2.sg_id]
 
   tags = {
-    Name = "${var.prefix}-private-instance2"
+    Name = "${module.variables.prefix}-private-instance2"
   }
 }
 
@@ -114,7 +118,7 @@ resource "aws_ec2_transit_gateway" "tgw" {
   description = "Connect public subnet in first VPC and private subnet in second VPC"
 
   tags = {
-    Name = "${var.prefix}-transit-gateway"
+    Name = "${module.variables.prefix}-transit-gateway"
   }
 }
 

@@ -1,18 +1,22 @@
+module "variables" {
+  source = "./../variables"
+}
+
 provider "aws" {
-  region = var.region
+  region = module.variables.region
 }
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/24"
 
   tags = {
-    Name = "${var.prefix}-vpc"
+    Name = "${module.variables.prefix}-vpc"
   }
 }
 
 module "public_subnet" {
   source     = "./../subnet"
-  name       = "${var.prefix}-public-subnet"
+  name       = "${module.variables.prefix}-public-subnet"
   vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.0.0/25"
 }
@@ -21,7 +25,7 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.prefix}-ig"
+    Name = "${module.variables.prefix}-ig"
   }
 }
 
@@ -33,25 +37,25 @@ resource "aws_route" "route_igw" {
 
 module "private_subnet" {
   source     = "./../subnet"
-  name       = "${var.prefix}-private-subnet"
+  name       = "${module.variables.prefix}-private-subnet"
   vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.0.128/25"
 }
 
 resource "aws_key_pair" "auth" {
-  key_name   = "${var.prefix}-key"
+  key_name   = "${module.variables.prefix}-key"
   public_key = file("../../key.pub")
 }
 
 module "aws_security_group" {
   source = "./../ssh_security_group"
-  prefix = var.prefix
+  prefix = module.variables.prefix
   vpc_id = aws_vpc.main.id
 }
 
 resource "aws_instance" "public_instance" {
-  ami           = "ami-089950bc622d39ed8" # Amazon Linux 2 Kernel 5.10 AMI 2.0.20220719.0 x86_64 HVM gp2
-  instance_type = "t2.micro"
+  ami           = module.variables.ami
+  instance_type = module.variables.instance_type
 
   subnet_id                   = module.public_subnet.subnet_id
   key_name                    = aws_key_pair.auth.key_name
@@ -59,7 +63,7 @@ resource "aws_instance" "public_instance" {
   vpc_security_group_ids      = [module.aws_security_group.sg_id]
 
   tags = {
-    Name = "${var.prefix}-public-instance"
+    Name = "${module.variables.prefix}-public-instance"
   }
 }
 
@@ -71,7 +75,7 @@ resource "aws_nat_gateway" "gw" {
   subnet_id     = module.public_subnet.subnet_id
 
   tags = {
-    Name = "${var.prefix}-nat-gw"
+    Name = "${module.variables.prefix}-nat-gw"
   }
 
   # To ensure proper ordering, it is recommended to add an explicit dependency
@@ -86,14 +90,14 @@ resource "aws_route" "route_nat_gw" {
 }
 
 resource "aws_instance" "private_instance" {
-  ami           = "ami-089950bc622d39ed8" # Amazon Linux 2 Kernel 5.10 AMI 2.0.20220719.0 x86_64 HVM gp2
-  instance_type = "t2.micro"
+  ami           = module.variables.ami
+  instance_type = module.variables.instance_type
 
   subnet_id              = module.private_subnet.subnet_id
   key_name               = aws_key_pair.auth.key_name
   vpc_security_group_ids = [module.aws_security_group.sg_id]
 
   tags = {
-    Name = "${var.prefix}-private-instance"
+    Name = "${module.variables.prefix}-private-instance"
   }
 }
